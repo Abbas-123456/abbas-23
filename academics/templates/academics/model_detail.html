@@ -1,0 +1,25 @@
+{% extends "academics/base.html" %}
+
+{% block title %}{{ model_label }} details{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+    <div>
+        <a class="small text-decoration-none" href="{% url 'academics:model-list' model_name %}">&larr; Back to {{ model_label|lower }}</a>
+        <h1 class="page-heading h2 mt-2 mb-1">{{ object }}</h1>
+        <p class="page-subtitle mb-0">{{ model_label }} details</p>
+    </div>
+    <div class="page-tools d-flex gap-2">
+        <a class="btn btn-light border" href="{% url 'academics:model-update' model_name object.pk %}">Edit record</a>
+        <a class="btn btn-outline-danger" href="{% url 'academics:model-delete' model_name object.pk %}">Delete</a>
+    </div>
+</div>
+<div class="surface p-3 p-md-4">
+    <dl class="row mb-0">
+        {% for label, value in fields %}
+            <dt class="col-sm-4 col-lg-3 border-bottom py-3 text-secondary fw-medium">{{ label }}</dt>
+            <dd class="col-sm-8 col-lg-9 border-bottom py-3 mb-0">{{ value }}</dd>
+        {% endfor %}
+    </dl>
+</div>
+{% endblock %}

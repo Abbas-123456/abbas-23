@@ -1,0 +1,56 @@
+{% extends "academics/base.html" %}
+
+{% block title %}{{ model_label }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+    <div>
+        <a class="small text-decoration-none" href="{% url 'academics:index' %}">&larr; Dashboard</a>
+        <h1 class="page-heading h2 mt-2 mb-1">{{ model_label }}</h1>
+        <p class="page-subtitle mb-0">Browse and manage {{ model_label|lower }}.</p>
+    </div>
+    <div class="page-tools">
+        <a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}">+ Add record</a>
+    </div>
+</div>
+{% if records %}
+    <div class="surface overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        {% for label in fields %}<th scope="col" class="px-3 py-3">{{ label }}</th>{% endfor %}
+                        <th scope="col" class="px-3 py-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for obj, values in records %}
+                        <tr>
+                            {% for label, value in values %}
+                                <td class="px-3">
+                                    {% if forloop.first %}
+                                        <a class="fw-semibold text-decoration-none" href="{% url 'academics:model-detail' model_name obj.pk %}">{{ value }}</a>
+                                    {% else %}
+                                        {{ value }}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                            <td class="px-3 text-end text-nowrap">
+                                <a class="btn btn-sm btn-light border" href="{% url 'academics:model-update' model_name obj.pk %}">Edit</a>
+                                <a class="btn btn-sm btn-outline-danger" href="{% url 'academics:model-delete' model_name obj.pk %}">Delete</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="surface text-center p-5">
+        <span class="module-icon mb-3">{{ model_label|first|upper }}</span>
+        <h2 class="h5">No records yet</h2>
+        <p class="page-subtitle">Add the first record to get started.</p>
+        <a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}">Add record</a>
+    </div>
+{% endif %}
+{% endblock %}

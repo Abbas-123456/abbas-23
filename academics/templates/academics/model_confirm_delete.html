@@ -1,0 +1,21 @@
+{% extends "academics/base.html" %}
+
+{% block title %}Delete {{ model_label }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="surface p-4 p-md-5">
+            <span class="module-icon mb-3 text-danger" style="background:#fff0f0">!</span>
+            <p class="text-uppercase small fw-semibold text-danger mb-2">Confirm action</p>
+            <h1 class="page-heading h3">Delete {{ model_label|lower }}?</h1>
+            <p class="page-subtitle">You are about to delete <strong class="text-dark">{{ object }}</strong>. This action cannot be undone.</p>
+            <form method="post" class="d-flex flex-column flex-sm-row gap-2 mt-4">
+                {% csrf_token %}
+                <button class="btn btn-danger" type="submit">Yes, delete record</button>
+                <a class="btn btn-light border" href="{% url 'academics:model-detail' model_name object.pk %}">Keep record</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101b33">
+    <title>{% block title %}Academics{% endblock %} | Core</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #17243b;
+            --muted: #718096;
+            --brand: #3559d8;
+            --canvas: #f4f6fb;
+            --line: #e8ecf3;
+        }
+        body {
+            min-height: 100vh;
+            background: var(--canvas);
+            color: var(--ink);
+            font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+        }
+        .app-header {
+            background: #101b33;
+            box-shadow: 0 4px 18px rgba(16, 27, 51, .12);
+        }
+        .brand-mark {
+            display: inline-grid;
+            width: 2rem;
+            height: 2rem;
+            place-items: center;
+            border-radius: .65rem;
+            background: #4669e5;
+            color: #fff;
+            font-weight: 800;
+        }
+        .app-main { max-width: 1240px; }
+        .page-heading { letter-spacing: -.035em; font-weight: 750; }
+        .page-subtitle { color: var(--muted); }
+        .surface {
+            border: 1px solid var(--line);
+            border-radius: 1rem;
+            background: #fff;
+            box-shadow: 0 8px 26px rgba(24, 39, 75, .045);
+        }
+        .module-card {
+            display: block;
+            height: 100%;
+            padding: 1.15rem;
+            border: 1px solid var(--line);
+            border-radius: .9rem;
+            background: #fff;
+            color: var(--ink);
+            text-decoration: none;
+            transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+        }
+        .module-card:hover {
+            transform: translateY(-2px);
+            border-color: #b7c5ff;
+            box-shadow: 0 10px 24px rgba(53, 89, 216, .09);
+            color: var(--brand);
+        }
+        .module-icon {
+            display: inline-grid;
+            width: 2.5rem;
+            height: 2.5rem;
+            place-items: center;
+            border-radius: .75rem;
+            background: #eef1ff;
+            color: var(--brand);
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .table { --bs-table-bg: transparent; }
+        .table thead th {
+            border-bottom-color: var(--line);
+            color: var(--muted);
+            font-size: .75rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .table tbody td { border-color: var(--line); }
+        .form-control, .form-select {
+            min-height: 2.75rem;
+            border-color: #dce2ed;
+            border-radius: .65rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #8ca3ff;
+            box-shadow: 0 0 0 .2rem rgba(53, 89, 216, .12);
+        }
+        .btn { border-radius: .65rem; font-weight: 600; }
+        .btn-primary { background: var(--brand); border-color: var(--brand); }
+        .app-footer { color: var(--muted); font-size: .875rem; }
+        @media (max-width: 575.98px) {
+            .app-main { padding-inline: 1rem; }
+            .page-tools { width: 100%; }
+            .page-tools .btn { width: 100%; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="d-flex flex-column">
+    <header class="app-header">
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container app-main">
+                <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold" href="{% url 'academics:index' %}">
+                    <span class="brand-mark">C</span>
+                    <span>Core <span class="text-white-50 fw-normal">Academics</span></span>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation" aria-controls="mainNavigation" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="mainNavigation">
+                    {% if user.is_authenticated %}
+                        <div class="navbar-nav me-auto ms-lg-4">
+                            <a class="nav-link" href="{% url 'academics:index' %}">Dashboard</a>
+                            <a class="nav-link" href="{% url 'academics:model-list' 'students' %}">Students</a>
+                            <a class="nav-link" href="{% url 'academics:model-list' 'courses' %}">Courses</a>
+                            <a class="nav-link" href="{% url 'academics:model-list' 'results' %}">Results</a>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 mt-3 mt-lg-0 text-white">
+                            <span class="small text-white-50">{{ user.get_username }}</span>
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-light" type="submit">Log out</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="ms-auto mt-3 mt-lg-0">
+                            <a class="btn btn-sm btn-outline-light" href="{% url 'login' %}">Log in</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main class="container app-main flex-grow-1 py-4 py-md-5">
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show surface" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="container app-main app-footer py-4">
+        <div class="border-top pt-3 d-flex flex-column flex-sm-row justify-content-between gap-1">
+            <span>Core Academics</span>
+            <span>Academic records management</span>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
