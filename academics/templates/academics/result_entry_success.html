@@ -1,0 +1,40 @@
+{% extends "academics/base.html" %}
+
+{% block title %}Marks saved{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="surface p-4 p-md-5">
+            <p class="text-uppercase small fw-semibold text-success mb-2"><i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>Result saved</p>
+            <h1 class="page-heading h3 mb-3">Marks recorded successfully</h1>
+            <dl class="row mb-4">
+                <dt class="col-sm-4 py-2">Student</dt>
+                <dd class="col-sm-8 py-2">{{ result.student.student_name }} ({{ result.student.reg_no }})</dd>
+                <dt class="col-sm-4 py-2">Course unit</dt>
+                <dd class="col-sm-8 py-2">{{ result.unit.unit_name }}</dd>
+                <dt class="col-sm-4 py-2">Study session</dt>
+                <dd class="col-sm-8 py-2">{{ result.session.academic_year }} / Semester {{ result.session.semester }}</dd>
+                <dt class="col-sm-4 py-2">Marks</dt>
+                <dd class="col-sm-8 py-2">{{ result.marks }}%</dd>
+            </dl>
+            <div class="rounded-3 bg-light p-3 mb-4">
+                <h2 class="h6">Current cumulative weighted GPA</h2>
+                {% if weighted_gpa is not None %}
+                    <p class="mb-1"><strong>{{ weighted_gpa }}</strong> / 5.00</p>
+                    {% if first_class %}
+                        <span class="badge text-bg-success">First Class (GPA &ge; 4.40)</span>
+                    {% else %}
+                        <span class="badge text-bg-secondary">Not First Class (GPA &lt; 4.40)</span>
+                    {% endif %}
+                    <p class="page-subtitle small mt-2 mb-0">Weighted across all recorded results using course-unit credits and the grading scale.</p>
+                {% else %}
+                    <p class="page-subtitle mb-0">Classification is not available until results and a matching grading scale are recorded.</p>
+                {% endif %}
+            </div>
+            <a class="btn btn-primary" href="{% url 'academics:result-entry' %}">Enter another result</a>
+            <a class="btn btn-light border" href="{% url 'academics:lecturer-dashboard' %}">Lecturer dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

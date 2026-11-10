@@ -1,0 +1,45 @@
+.stat-card {
+    position: relative;
+    display: flex;
+    min-height: 11.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.25rem;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    background: #fff;
+    color: var(--ink);
+    text-decoration: none;
+    box-shadow: 0 8px 26px rgba(24, 39, 75, .045);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    color: var(--ink);
+    box-shadow: 0 12px 28px rgba(24, 39, 75, .1);
+}
+
+.stat-icon {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    margin-bottom: .85rem;
+    border-radius: .85rem;
+    font-size: 1.15rem;
+}
+
+.stat-icon-blue { background: #eaf0ff; color: #3559d8; }
+.stat-icon-violet { background: #f0ebff; color: #7653cf; }
+.stat-icon-teal { background: #e6f8f5; color: #168d7d; }
+.stat-icon-orange { background: #fff2e5; color: #d77b1f; }
+.stat-label { color: var(--muted); font-size: .875rem; }
+.stat-value { margin-top: .15rem; font-size: 1.8rem; font-weight: 750; line-height: 1.2; }
+.stat-caption { margin-top: .4rem; color: var(--muted); font-size: .75rem; }
+
+.section-heading {
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+}

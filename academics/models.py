@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
@@ -62,6 +63,13 @@ class Lecturer(models.Model):
         FEMALE = 'F', 'Female'
 
     lecturer_id = models.AutoField(primary_key=True, db_column='LecturerId')
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lecturer_profile',
+    )
     lecturer_name = models.CharField(max_length=50, db_column='LecturerName')
     gender = models.CharField(max_length=1, choices=Gender.choices, db_column='Gender')
     contact = models.CharField(max_length=10, db_column='Contact')
@@ -84,12 +92,42 @@ class CourseUnit(models.Model):
     credit_units = models.IntegerField(db_column='CreditUnits')
     academic_year = models.CharField(max_length=9, db_column='AcademicYear')
     semester = models.CharField(max_length=1, choices=Semester.choices, db_column='Semester')
+    lecturers = models.ManyToManyField(
+        'Lecturer',
+        through='UnitAssignment',
+        related_name='course_units',
+        blank=True,
+    )
 
     class Meta:
         db_table = 'COURSEUNIT'
 
     def __str__(self):
         return self.unit_name
+
+
+class UnitAssignment(models.Model):
+    lecturer = models.ForeignKey(
+        Lecturer,
+        on_delete=models.CASCADE,
+        related_name='unit_assignments',
+    )
+    unit = models.ForeignKey(
+        CourseUnit,
+        on_delete=models.CASCADE,
+        related_name='lecturer_assignments',
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=('lecturer', 'unit'),
+                name='uniq_lecturer_course_unit',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.lecturer} - {self.unit}'
 
 
 class StudySession(models.Model):
@@ -176,6 +214,13 @@ class Result(models.Model):
         on_delete=models.PROTECT,
         db_column='SessionId',
         related_name='results',
+    )
+    entered_by = models.ForeignKey(
+        Lecturer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='entered_results',
     )
     marks = models.IntegerField(db_column='Marks')
 

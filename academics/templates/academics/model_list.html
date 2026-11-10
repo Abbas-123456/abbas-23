@@ -10,7 +10,7 @@
         <p class="page-subtitle mb-0">Browse and manage {{ model_label|lower }}.</p>
     </div>
     <div class="page-tools">
-        <a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}">+ Add record</a>
+        <a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Add record</a>
     </div>
 </div>
 {% if records %}
@@ -36,8 +36,8 @@
                                 </td>
                             {% endfor %}
                             <td class="px-3 text-end text-nowrap">
-                                <a class="btn btn-sm btn-light border" href="{% url 'academics:model-update' model_name obj.pk %}">Edit</a>
-                                <a class="btn btn-sm btn-outline-danger" href="{% url 'academics:model-delete' model_name obj.pk %}">Delete</a>
+                                <a class="btn btn-sm btn-light border" href="{% url 'academics:model-update' model_name obj.pk %}"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit</a>
+                                <a class="btn btn-sm btn-outline-danger" href="{% url 'academics:model-delete' model_name obj.pk %}"><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete</a>
                             </td>
                         </tr>
                     {% endfor %}
@@ -47,10 +47,10 @@
     </div>
 {% else %}
     <div class="surface text-center p-5">
-        <span class="module-icon mb-3">{{ model_label|first|upper }}</span>
+        <span class="module-icon mb-3"><i class="bi bi-inbox" aria-hidden="true"></i></span>
         <h2 class="h5">No records yet</h2>
         <p class="page-subtitle">Add the first record to get started.</p>
-        <a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}">Add record</a>
+        <a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Add record</a>
     </div>
 {% endif %}
 {% endblock %}

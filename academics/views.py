@@ -1,5 +1,6 @@
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.db.models.deletion import ProtectedError
 from django import forms
 from django.db import models as django_models
@@ -9,6 +10,17 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from . import models
+from .access import (
+    ROLE_COORDINATOR,
+    ROLE_LECTURER,
+    ROLE_REGISTRAR,
+    coordinator_required,
+    has_role,
+    lecturer_required,
+    registrar_required,
+)
+from .forms import ResultEntryForm
+from .services import calculate_weighted_gpa, is_first_class
 
 
 MODEL_REGISTRY = {
@@ -21,6 +33,7 @@ MODEL_REGISTRY = {
     'study-sessions': models.StudySession,
     'gradings': models.Grading,
     'results': models.Result,
+    'unit-assignments': models.UnitAssignment,
 }
 
 
@@ -58,14 +71,33 @@ def get_form_widgets(model):
 
 @login_required
 def index(request):
-    return render(
-        request,
-        'academics/index.html',
-        {'model_links': MODEL_REGISTRY.keys()},
-    )
+    if has_role(request.user, ROLE_REGISTRAR):
+        return render(
+            request,
+            'academics/dashboard.html',
+            {
+                'model_links': MODEL_REGISTRY.keys(),
+                'student_count': models.Student.objects.count(),
+                'course_count': models.Course.objects.count(),
+                'ongoing_session_count': models.StudySession.objects.filter(
+                    status=models.StudySession.Status.ONGOING
+                ).count(),
+                'result_count': models.Result.objects.count(),
+                'recent_results': models.Result.objects.select_related(
+                    'student',
+                    'unit',
+                    'session',
+                ).order_by('-pk')[:6],
+            },
+        )
+    if has_role(request.user, ROLE_LECTURER):
+        return redirect('academics:lecturer-dashboard')
+    if has_role(request.user, ROLE_COORDINATOR):
+        return redirect('academics:coordinator-dashboard')
+    raise PermissionDenied
 
 
-@login_required
+@registrar_required
 def model_list(request, model_name):
     model = get_model(model_name)
     fields = get_display_fields(model)
@@ -85,7 +117,7 @@ def model_list(request, model_name):
     )
 
 
-@login_required
+@registrar_required
 def model_detail(request, model_name, pk):
     model = get_model(model_name)
     obj = get_object_or_404(model, pk=pk)
@@ -101,7 +133,7 @@ def model_detail(request, model_name, pk):
     )
 
 
-@login_required
+@registrar_required
 def model_form(request, model_name, pk=None):
     model = get_model(model_name)
     obj = get_object_or_404(model, pk=pk) if pk is not None else None
@@ -133,7 +165,7 @@ def model_form(request, model_name, pk=None):
     )
 
 
-@login_required
+@registrar_required
 def model_delete(request, model_name, pk):
     model = get_model(model_name)
     obj = get_object_or_404(model, pk=pk)
@@ -159,4 +191,86 @@ def model_delete(request, model_name, pk):
             'model_label': model._meta.verbose_name.title(),
             'object': obj,
         },
+    )
+
+
+@lecturer_required
+def lecturer_dashboard(request):
+    lecturer = get_object_or_404(models.Lecturer, user=request.user)
+    units = lecturer.course_units.order_by('unit_name')
+    results = (
+        models.Result.objects.filter(unit__in=units)
+        .select_related('student', 'unit', 'session')
+        .order_by('-session__academic_year', 'student__student_name')
+    )
+    return render(
+        request,
+        'academics/lecturer_dashboard.html',
+        {
+            'lecturer': lecturer,
+            'units': units,
+            'results': results,
+        },
+    )
+
+
+@lecturer_required
+def result_entry(request):
+    lecturer = get_object_or_404(models.Lecturer, user=request.user)
+    form = ResultEntryForm(
+        request.POST or None,
+        lecturer=lecturer,
+    )
+    if request.method == 'POST' and form.is_valid():
+        result = form.save()
+        weighted_gpa = calculate_weighted_gpa(result.student)
+        return render(
+            request,
+            'academics/result_entry_success.html',
+            {
+                'result': result,
+                'weighted_gpa': weighted_gpa,
+                'first_class': is_first_class(weighted_gpa),
+            },
+        )
+
+    return render(
+        request,
+        'academics/result_entry_form.html',
+        {'form': form},
+    )
+
+
+@coordinator_required
+def coordinator_dashboard(request):
+    results = (
+        models.Result.objects.select_related('student', 'unit', 'session')
+        .order_by(
+            '-session__academic_year',
+            'session__semester',
+            'student__student_name',
+        )
+    )
+    result_rows = []
+    student_gpas = {}
+    for result in results:
+        if result.student_id not in student_gpas:
+            student_gpa = calculate_weighted_gpa(result.student)
+            student_gpas[result.student_id] = (
+                student_gpa,
+                is_first_class(student_gpa),
+            )
+        weighted_gpa, first_class = student_gpas[result.student_id]
+        result_rows.append(
+            {
+                'result': result,
+                'weighted_gpa': weighted_gpa,
+                'first_class': first_class,
+            }
+        )
+
+    return render(
+        request,
+        'academics/coordinator_dashboard.html',
+        {'result_rows': result_rows},
     )

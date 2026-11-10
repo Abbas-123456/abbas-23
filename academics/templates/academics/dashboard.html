@@ -1,0 +1,118 @@
+{% extends "academics/base.html" %}
+{% load static %}
+
+{% block title %}Registrar dashboard{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{% static 'academics/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+    <div>
+        <p class="text-uppercase small fw-semibold text-primary mb-2">Academic Registrar</p>
+        <h1 class="page-heading display-6 mb-2">Results overview</h1>
+        <p class="page-subtitle mb-0">A live overview of students, courses, study sessions, and recorded results.</p>
+    </div>
+    <a class="btn btn-primary page-tools" href="{% url 'academics:model-list' 'results' %}">
+        <i class="bi bi-clipboard2-check me-2" aria-hidden="true"></i>Manage results
+    </a>
+</div>
+
+<section class="row g-3 mb-4" aria-label="Academic statistics">
+    <div class="col-sm-6 col-xl-3">
+        <a class="stat-card" href="{% url 'academics:model-list' 'students' %}">
+            <span class="stat-icon stat-icon-blue"><i class="bi bi-people-fill" aria-hidden="true"></i></span>
+            <span class="stat-label">Students</span>
+            <span class="stat-value">{{ student_count }}</span>
+            <span class="stat-caption">Registered students <i class="bi bi-arrow-up-right ms-1" aria-hidden="true"></i></span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="stat-card" href="{% url 'academics:model-list' 'courses' %}">
+            <span class="stat-icon stat-icon-violet"><i class="bi bi-journal-bookmark-fill" aria-hidden="true"></i></span>
+            <span class="stat-label">Courses</span>
+            <span class="stat-value">{{ course_count }}</span>
+            <span class="stat-caption">Available courses <i class="bi bi-arrow-up-right ms-1" aria-hidden="true"></i></span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="stat-card" href="{% url 'academics:model-list' 'study-sessions' %}">
+            <span class="stat-icon stat-icon-teal"><i class="bi bi-calendar2-week-fill" aria-hidden="true"></i></span>
+            <span class="stat-label">Ongoing sessions</span>
+            <span class="stat-value">{{ ongoing_session_count }}</span>
+            <span class="stat-caption">Currently in progress <i class="bi bi-arrow-up-right ms-1" aria-hidden="true"></i></span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="stat-card" href="{% url 'academics:model-list' 'results' %}">
+            <span class="stat-icon stat-icon-orange"><i class="bi bi-bar-chart-fill" aria-hidden="true"></i></span>
+            <span class="stat-label">Recorded results</span>
+            <span class="stat-value">{{ result_count }}</span>
+            <span class="stat-caption">Across all study sessions <i class="bi bi-arrow-up-right ms-1" aria-hidden="true"></i></span>
+        </a>
+    </div>
+</section>
+
+<section class="row g-4">
+    <div class="col-lg-8">
+        <div class="surface overflow-hidden h-100">
+            <div class="section-heading d-flex justify-content-between align-items-center gap-3">
+                <div>
+                    <h2 class="h5 mb-1">Recently recorded results</h2>
+                    <p class="page-subtitle small mb-0">Latest marks entered in the system.</p>
+                </div>
+                <a class="btn btn-sm btn-light border text-nowrap" href="{% url 'academics:model-list' 'results' %}">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-3 py-3">Student</th>
+                            <th class="px-3 py-3">Course unit</th>
+                            <th class="px-3 py-3">Session</th>
+                            <th class="px-3 py-3 text-end">Marks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in recent_results %}
+                            <tr>
+                                <td class="px-3">
+                                    <span class="fw-semibold d-block">{{ result.student.student_name }}</span>
+                                    <span class="small text-secondary">{{ result.student.reg_no }}</span>
+                                </td>
+                                <td class="px-3">{{ result.unit.unit_name }}</td>
+                                <td class="px-3">{{ result.session.academic_year }} / {{ result.session.semester }}</td>
+                                <td class="px-3 text-end fw-semibold">{{ result.marks }}%</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td class="px-3 py-5 text-center" colspan="4">
+                                    <i class="bi bi-inbox empty-icon d-block mb-2" aria-hidden="true"></i>
+                                    <span class="text-secondary">No results have been recorded yet.</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="surface p-3 p-md-4 h-100">
+            <h2 class="h5 mb-1">Record management</h2>
+            <p class="page-subtitle small mb-3">Quick access to academic records.</p>
+            <div class="quick-link-list">
+                {% for model_name in model_links %}
+                    <a class="quick-link" href="{% url 'academics:model-list' model_name %}">
+                        <span class="quick-link-icon"><i class="bi bi-folder2-open" aria-hidden="true"></i></span>
+                        <span class="flex-grow-1">{{ model_name|title }}</span>
+                        <i class="bi bi-chevron-right small" aria-hidden="true"></i>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

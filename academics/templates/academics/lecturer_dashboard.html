@@ -1,0 +1,68 @@
+{% extends "academics/base.html" %}
+
+{% block title %}Lecturer dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+    <div>
+        <p class="text-uppercase small fw-semibold text-primary mb-2">Lecturer workspace</p>
+        <h1 class="page-heading display-6 mb-2">Welcome, {{ lecturer.lecturer_name }}</h1>
+        <p class="page-subtitle mb-0">Enter marks for your assigned course units.</p>
+    </div>
+    <div class="page-tools">
+        <a class="btn btn-primary" href="{% url 'academics:result-entry' %}"><i class="bi bi-pencil-square me-2" aria-hidden="true"></i>Enter student marks</a>
+    </div>
+</div>
+
+<section class="mb-4">
+    <h2 class="h5 mb-3">Your assigned units</h2>
+    <div class="row g-3">
+        {% for unit in units %}
+            <div class="col-sm-6 col-lg-4">
+                <div class="surface p-3 h-100">
+                    <span class="module-icon mb-3"><i class="bi bi-journal-text" aria-hidden="true"></i></span>
+                    <h3 class="h6 mb-1">{{ unit.unit_name }}</h3>
+                    <p class="page-subtitle small mb-0">{{ unit.academic_year }} &middot; Semester {{ unit.semester }} &middot; {{ unit.credit_units }} credits</p>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="surface p-4">
+                    <h3 class="h6">No units assigned yet</h3>
+                    <p class="page-subtitle mb-0">Please contact the Academic Registrar to assign your course units.</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section>
+    <h2 class="h5 mb-3"><i class="bi bi-clock-history me-2 text-primary" aria-hidden="true"></i>Recently entered results</h2>
+    <div class="surface overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="px-3 py-3">Student</th>
+                        <th class="px-3 py-3">Course unit</th>
+                        <th class="px-3 py-3">Study session</th>
+                        <th class="px-3 py-3">Marks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                        <tr>
+                            <td class="px-3">{{ result.student.student_name }} <span class="text-secondary small">({{ result.student.reg_no }})</span></td>
+                            <td class="px-3">{{ result.unit.unit_name }}</td>
+                            <td class="px-3">{{ result.session.academic_year }} / {{ result.session.semester }}</td>
+                            <td class="px-3 fw-semibold">{{ result.marks }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td class="px-3 py-4 text-secondary" colspan="4">No marks have been entered for your units yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
