@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#101b33">
+    <meta name="theme-color" content="#26384a">
     <title>{% block title %}Academics{% endblock %} | Core</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -12,68 +12,100 @@
     {% block page_styles %}{% endblock %}
     {% block extra_head %}{% endblock %}
 </head>
-<body class="d-flex flex-column">
-    <header class="app-header">
-        <nav class="navbar navbar-expand-lg navbar-dark">
-            <div class="container app-main">
-                <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold" href="{% url 'academics:index' %}">
+<body>
+<div class="app-layout">
+    {% if user.is_authenticated %}
+        <aside class="app-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="appSidebar" aria-labelledby="appSidebarLabel">
+            <div class="sidebar-heading">
+                <a class="sidebar-brand" href="{% url 'academics:index' %}" id="appSidebarLabel">
                     <span class="brand-mark"><i class="bi bi-mortarboard-fill" aria-hidden="true"></i></span>
-                    <span>Core <span class="text-white-50 fw-normal">Academics</span></span>
+                    <span><strong>CORE</strong><small>ACADEMICS</small></span>
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation" aria-controls="mainNavigation" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="mainNavigation">
-                    {% if user.is_authenticated %}
-                        <div class="navbar-nav me-auto ms-lg-4">
-                            {% if is_academic_registrar %}
-                                <a class="nav-link" href="{% url 'academics:index' %}"><i class="bi bi-grid-1x2-fill me-1" aria-hidden="true"></i>Registrar dashboard</a>
-                                <a class="nav-link" href="{% url 'academics:model-list' 'students' %}"><i class="bi bi-people-fill me-1" aria-hidden="true"></i>Students</a>
-                                <a class="nav-link" href="{% url 'academics:model-list' 'results' %}"><i class="bi bi-bar-chart-fill me-1" aria-hidden="true"></i>Results</a>
-                                <a class="nav-link" href="{% url 'academics:model-list' 'unit-assignments' %}"><i class="bi bi-person-workspace me-1" aria-hidden="true"></i>Unit assignments</a>
-                            {% elif is_lecturer %}
-                                <a class="nav-link" href="{% url 'academics:lecturer-dashboard' %}"><i class="bi bi-grid-1x2-fill me-1" aria-hidden="true"></i>Lecturer dashboard</a>
-                                <a class="nav-link" href="{% url 'academics:result-entry' %}"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Enter marks</a>
-                            {% elif is_faculty_coordinator %}
-                                <a class="nav-link" href="{% url 'academics:coordinator-dashboard' %}"><i class="bi bi-clipboard-data-fill me-1" aria-hidden="true"></i>Results review</a>
-                            {% endif %}
-                        </div>
-                        <div class="d-flex align-items-center gap-3 mt-3 mt-lg-0 text-white">
-                            <span class="small text-white-50">{{ user.get_username }}</span>
-                            <form method="post" action="{% url 'logout' %}">
-                                {% csrf_token %}
-                                <button class="btn btn-sm btn-outline-light" type="submit"><i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Log out</button>
-                            </form>
-                        </div>
-                    {% else %}
-                        <div class="ms-auto mt-3 mt-lg-0">
-                            <a class="btn btn-sm btn-outline-light" href="{% url 'login' %}">Log in</a>
-                        </div>
+                <button class="btn-close btn-close-white d-lg-none" type="button" data-bs-dismiss="offcanvas" data-bs-target="#appSidebar" aria-label="Close navigation"></button>
+            </div>
+            <nav class="sidebar-nav" aria-label="Main navigation">
+                {% if is_academic_registrar %}
+                    <span class="sidebar-section-label">WORKSPACE</span>
+                    <a class="sidebar-link" href="{% url 'academics:index' %}"><i class="bi bi-grid-1x2-fill" aria-hidden="true"></i><span>Dashboard</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'students' %}"><i class="bi bi-people-fill" aria-hidden="true"></i><span>Students</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'lecturers' %}"><i class="bi bi-person-workspace" aria-hidden="true"></i><span>Lecturers</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'faculties' %}"><i class="bi bi-building" aria-hidden="true"></i><span>Faculties</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'courses' %}"><i class="bi bi-journal-bookmark-fill" aria-hidden="true"></i><span>Courses</span></a>
+                    <span class="sidebar-section-label">RESULTS PROCESSING</span>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'results' %}"><i class="bi bi-bar-chart-fill" aria-hidden="true"></i><span>Results</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'course-units' %}"><i class="bi bi-journal-text" aria-hidden="true"></i><span>Course units</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'study-sessions' %}"><i class="bi bi-calendar2-week-fill" aria-hidden="true"></i><span>Study sessions</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'gradings' %}"><i class="bi bi-award-fill" aria-hidden="true"></i><span>Grading scale</span></a>
+                    <span class="sidebar-section-label">OPERATIONS</span>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'unit-assignments' %}"><i class="bi bi-person-check-fill" aria-hidden="true"></i><span>Unit assignments</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'timetables' %}"><i class="bi bi-clock-history" aria-hidden="true"></i><span>Timetable</span></a>
+                    {% if user.is_staff %}
+                        <a class="sidebar-link" href="{% url 'admin:index' %}"><i class="bi bi-gear-fill" aria-hidden="true"></i><span>Django Admin</span></a>
                     {% endif %}
+                {% elif is_lecturer %}
+                    <span class="sidebar-section-label">LECTURER WORKSPACE</span>
+                    <a class="sidebar-link" href="{% url 'academics:lecturer-dashboard' %}"><i class="bi bi-grid-1x2-fill" aria-hidden="true"></i><span>Dashboard</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:result-entry' %}"><i class="bi bi-pencil-square" aria-hidden="true"></i><span>Enter marks</span></a>
+                {% elif is_faculty_coordinator %}
+                    <span class="sidebar-section-label">COORDINATOR WORKSPACE</span>
+                    <a class="sidebar-link" href="{% url 'academics:coordinator-dashboard' %}"><i class="bi bi-clipboard-data-fill" aria-hidden="true"></i><span>Results review</span></a>
+                {% endif %}
+            </nav>
+            <div class="sidebar-footer">
+                <span class="sidebar-avatar"><i class="bi bi-person-fill" aria-hidden="true"></i></span>
+                <span class="sidebar-user"><strong>{{ user.get_username }}</strong><small>{% if is_academic_registrar %}Academic Registrar{% elif is_lecturer %}Lecturer{% elif is_faculty_coordinator %}Faculty Coordinator{% else %}Staff account{% endif %}</small></span>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="sidebar-logout" type="submit" aria-label="Log out" title="Log out"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
+                </form>
+            </div>
+        </aside>
+    {% endif %}
+
+    <div class="app-main-panel">
+        <header class="app-topbar">
+            <div class="d-flex align-items-center gap-3">
+                {% if user.is_authenticated %}
+                    <button class="btn sidebar-toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="Open navigation">
+                        <i class="bi bi-list" aria-hidden="true"></i>
+                    </button>
+                {% else %}
+                    <a class="topbar-brand" href="{% url 'login' %}"><span class="brand-mark"><i class="bi bi-mortarboard-fill" aria-hidden="true"></i></span> Core Academics</a>
+                {% endif %}
+                <span class="topbar-context">{% block page_context %}{% if is_academic_registrar %}Registrar workspace{% elif is_lecturer %}Lecturer workspace{% elif is_faculty_coordinator %}Coordinator workspace{% else %}Academic results processing{% endif %}{% endblock %}</span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                {% if user.is_authenticated %}
+                    <span class="topbar-user"><i class="bi bi-person-circle me-1" aria-hidden="true"></i>{{ user.get_username }}</span>
+                    <form class="d-lg-none" method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Log out"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
+                    </form>
+                {% else %}
+                    <a class="btn btn-sm btn-primary" href="{% url 'login' %}">Sign in</a>
+                {% endif %}
+            </div>
+        </header>
+        <main class="app-main">
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
                 </div>
-            </div>
-        </nav>
-    </header>
-    <main class="container app-main flex-grow-1 py-4 py-md-5">
-        {% if messages %}
-            <div class="mb-4">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show surface" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-        {% block content %}{% endblock %}
-    </main>
-    <footer class="container app-main app-footer py-4">
-        <div class="border-top pt-3 d-flex flex-column flex-sm-row justify-content-between gap-1">
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+        <footer class="app-footer">
             <span><i class="bi bi-mortarboard me-1" aria-hidden="true"></i>Core Academics</span>
-            <span>Academic records management</span>
-        </div>
-    </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    {% block extra_scripts %}{% endblock %}
+            <span>Academic results processing system</span>
+        </footer>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

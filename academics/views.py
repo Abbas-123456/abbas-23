@@ -72,17 +72,40 @@ def get_form_widgets(model):
 @login_required
 def index(request):
     if has_role(request.user, ROLE_REGISTRAR):
+        result_count = models.Result.objects.count()
+        grade_summary = []
+        for grade in models.Grading.objects.order_by('-min_marks'):
+            grade_count = models.Result.objects.filter(
+                marks__gte=grade.min_marks,
+                marks__lte=grade.max_marks,
+            ).count()
+            grade_summary.append(
+                {
+                    'symbol': grade.grade_symbol,
+                    'count': grade_count,
+                    'percent': round(grade_count * 100 / result_count)
+                    if result_count
+                    else 0,
+                    'min_marks': grade.min_marks,
+                    'max_marks': grade.max_marks,
+                }
+            )
         return render(
             request,
             'academics/dashboard.html',
             {
                 'model_links': MODEL_REGISTRY.keys(),
                 'student_count': models.Student.objects.count(),
+                'lecturer_count': models.Lecturer.objects.count(),
                 'course_count': models.Course.objects.count(),
+                'faculty_count': models.Faculty.objects.count(),
+                'course_unit_count': models.CourseUnit.objects.count(),
+                'unit_assignment_count': models.UnitAssignment.objects.count(),
                 'ongoing_session_count': models.StudySession.objects.filter(
                     status=models.StudySession.Status.ONGOING
                 ).count(),
-                'result_count': models.Result.objects.count(),
+                'result_count': result_count,
+                'grade_summary': grade_summary,
                 'recent_results': models.Result.objects.select_related(
                     'student',
                     'unit',
