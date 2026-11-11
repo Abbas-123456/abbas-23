@@ -14,22 +14,31 @@
                 <dt class="col-sm-4 py-2">Course unit</dt>
                 <dd class="col-sm-8 py-2">{{ result.unit.unit_name }}</dd>
                 <dt class="col-sm-4 py-2">Study session</dt>
-                <dd class="col-sm-8 py-2">{{ result.session.academic_year }} / Semester {{ result.session.semester }}</dd>
+                <dd class="col-sm-8 py-2">{{ result.session.academic_year }} / Semester {{ result.session.semester }} / {{ result.session.study_period }}</dd>
                 <dt class="col-sm-4 py-2">Marks</dt>
                 <dd class="col-sm-8 py-2">{{ result.marks }}%</dd>
+                <dt class="col-sm-4 py-2">Grade</dt>
+                <dd class="col-sm-8 py-2">
+                    {% if grade %}
+                        {{ grade.grade_symbol }} ({{ grade.grade_points }} points)
+                    {% else %}
+                        Not available
+                    {% endif %}
+                </dd>
             </dl>
             <div class="rounded-3 bg-light p-3 mb-4">
-                <h2 class="h6">Current cumulative weighted GPA</h2>
-                {% if weighted_gpa is not None %}
-                    <p class="mb-1"><strong>{{ weighted_gpa }}</strong> / 5.00</p>
+                <h2 class="h6">Academic performance</h2>
+                {% if session_gpa is not None %}
+                    <p class="mb-1">Session GPA: <strong>{{ session_gpa }}</strong> / 5.00</p>
+                    <p class="mb-1">Cumulative GPA (CGPA): <strong>{{ cgpa }}</strong> / 5.00</p>
                     {% if first_class %}
-                        <span class="badge text-bg-success">First Class (GPA &ge; 4.40)</span>
+                        <span class="badge text-bg-success">First Class (CGPA &ge; 4.40)</span>
                     {% else %}
-                        <span class="badge text-bg-secondary">Not First Class (GPA &lt; 4.40)</span>
+                        <span class="badge text-bg-secondary">Not First Class (CGPA &lt; 4.40)</span>
                     {% endif %}
-                    <p class="page-subtitle small mt-2 mb-0">Weighted across all recorded results using course-unit credits and the grading scale.</p>
+                    <p class="page-subtitle small mt-2 mb-0">Both averages are weighted by course-unit credits. CGPA includes every recorded attempt.</p>
                 {% else %}
-                    <p class="page-subtitle mb-0">Classification is not available until results and a matching grading scale are recorded.</p>
+                    <p class="page-subtitle mb-0">GPA and classification are unavailable until a matching grading scale is recorded.</p>
                 {% endif %}
             </div>
             <a class="btn btn-primary" href="{% url 'academics:result-entry' %}">Enter another result</a>

@@ -22,7 +22,7 @@
                 <div class="surface p-3 h-100">
                     <span class="module-icon mb-3"><i class="bi bi-journal-text" aria-hidden="true"></i></span>
                     <h3 class="h6 mb-1">{{ unit.unit_name }}</h3>
-                    <p class="page-subtitle small mb-0">{{ unit.academic_year }} &middot; Semester {{ unit.semester }} &middot; {{ unit.credit_units }} credits</p>
+                    <p class="page-subtitle small mb-0">{{ unit.academic_year }} &middot; Semester {{ unit.semester }} &middot; {% if unit.credit_allocation %}{{ unit.credit_allocation.credit_units }} credits{% else %}Credits not allocated{% endif %}</p>
                 </div>
             </div>
         {% empty %}
@@ -47,18 +47,20 @@
                         <th class="px-3 py-3">Course unit</th>
                         <th class="px-3 py-3">Study session</th>
                         <th class="px-3 py-3">Marks</th>
+                        <th class="px-3 py-3">Grade</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for result in results %}
+                    {% for row in result_rows %}
                         <tr>
-                            <td class="px-3">{{ result.student.student_name }} <span class="text-secondary small">({{ result.student.reg_no }})</span></td>
-                            <td class="px-3">{{ result.unit.unit_name }}</td>
-                            <td class="px-3">{{ result.session.academic_year }} / {{ result.session.semester }}</td>
-                            <td class="px-3 fw-semibold">{{ result.marks }}</td>
+                            <td class="px-3">{{ row.result.student.student_name }} <span class="text-secondary small">({{ row.result.student.reg_no }})</span></td>
+                            <td class="px-3">{{ row.result.unit.unit_name }}</td>
+                            <td class="px-3">{{ row.result.session.academic_year }} / Semester {{ row.result.session.semester }} / {{ row.result.session.study_period }}</td>
+                            <td class="px-3 fw-semibold">{{ row.result.marks }}</td>
+                            <td class="px-3">{% if row.grade %}{{ row.grade.grade_symbol }} ({{ row.grade.grade_points }}){% else %}Not available{% endif %}</td>
                         </tr>
                     {% empty %}
-                        <tr><td class="px-3 py-4 text-secondary" colspan="4">No marks have been entered for your units yet.</td></tr>
+                        <tr><td class="px-3 py-4 text-secondary" colspan="5">No marks have been entered for your units yet.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

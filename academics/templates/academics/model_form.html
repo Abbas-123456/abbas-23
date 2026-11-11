@@ -19,4 +19,30 @@
         </div>
     </form>
 </div>
+{% if model_name == 'students' %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const facultyField = document.getElementById('id_faculty');
+    const courseField = document.getElementById('id_course');
+    if (!facultyField || !courseField) return;
+
+    function filterCourses() {
+        const selectedFaculty = facultyField.value;
+        Array.from(courseField.options).forEach(function (option) {
+            if (!option.value) return;
+            const matchesFaculty = option.dataset.facultyId === selectedFaculty;
+            option.hidden = !matchesFaculty;
+            option.disabled = !matchesFaculty;
+        });
+        const selectedCourse = courseField.selectedOptions[0];
+        if (selectedCourse && selectedCourse.value && selectedCourse.disabled) {
+            courseField.value = '';
+        }
+    }
+
+    facultyField.addEventListener('change', filterCourses);
+    filterCourses();
+});
+</script>
+{% endif %}
 {% endblock %}

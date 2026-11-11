@@ -80,8 +80,16 @@
     <div class="col-sm-6 col-xxl-3">
         <a class="stat-card" href="{% url 'academics:model-list' 'unit-assignments' %}">
             <span class="stat-icon stat-navy"><i class="bi bi-person-check" aria-hidden="true"></i></span>
-            <span class="stat-label">Unit assignments</span>
+            <span class="stat-label">Credit unit allocations</span>
             <span class="stat-value">{{ unit_assignment_count }}</span>
+            <span class="stat-caption">Course units with allocated credits</span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xxl-3">
+        <a class="stat-card" href="{% url 'academics:model-list' 'lecturer-assignments' %}">
+            <span class="stat-icon stat-rust"><i class="bi bi-person-check" aria-hidden="true"></i></span>
+            <span class="stat-label">Lecturer assignments</span>
+            <span class="stat-value">{{ lecturer_assignment_count }}</span>
             <span class="stat-caption">Lecturer-to-unit links</span>
         </a>
     </div>
@@ -112,7 +120,7 @@
                             <tr>
                                 <td><strong>{{ result.student.student_name }}</strong><small>{{ result.student.reg_no }}</small></td>
                                 <td>{{ result.unit.unit_name }}</td>
-                                <td>{{ result.session.academic_year }} / {{ result.session.semester }}</td>
+                                <td>{{ result.session.academic_year }} / Semester {{ result.session.semester }} / {{ result.session.study_period }}</td>
                                 <td class="text-end"><span class="mark-pill">{{ result.marks }}%</span></td>
                             </tr>
                         {% empty %}

@@ -19,8 +19,21 @@ from .access import (
     lecturer_required,
     registrar_required,
 )
-from .forms import ResultEntryForm
-from .services import calculate_weighted_gpa, is_first_class
+from .forms import (
+    CourseForm,
+    CourseUnitForm,
+    CreditUnitAllocationForm,
+    LecturerForm,
+    ResultEntryForm,
+    StudentForm,
+    UnitAssignmentForm,
+)
+from .services import (
+    calculate_cgpa,
+    calculate_gpa,
+    get_grade_for_marks,
+    is_first_class,
+)
 
 
 MODEL_REGISTRY = {
@@ -33,7 +46,8 @@ MODEL_REGISTRY = {
     'study-sessions': models.StudySession,
     'gradings': models.Grading,
     'results': models.Result,
-    'unit-assignments': models.UnitAssignment,
+    'unit-assignments': models.CreditUnitAllocation,
+    'lecturer-assignments': models.UnitAssignment,
 }
 
 
@@ -100,7 +114,8 @@ def index(request):
                 'course_count': models.Course.objects.count(),
                 'faculty_count': models.Faculty.objects.count(),
                 'course_unit_count': models.CourseUnit.objects.count(),
-                'unit_assignment_count': models.UnitAssignment.objects.count(),
+                'unit_assignment_count': models.CreditUnitAllocation.objects.count(),
+                'lecturer_assignment_count': models.UnitAssignment.objects.count(),
                 'ongoing_session_count': models.StudySession.objects.filter(
                     status=models.StudySession.Status.ONGOING
                 ).count(),
@@ -160,11 +175,21 @@ def model_detail(request, model_name, pk):
 def model_form(request, model_name, pk=None):
     model = get_model(model_name)
     obj = get_object_or_404(model, pk=pk) if pk is not None else None
-    form_class = modelform_factory(
-        model,
-        fields='__all__',
-        widgets=get_form_widgets(model),
-    )
+    form_classes = {
+        models.Course: CourseForm,
+        models.Student: StudentForm,
+        models.Lecturer: LecturerForm,
+        models.CourseUnit: CourseUnitForm,
+        models.CreditUnitAllocation: CreditUnitAllocationForm,
+        models.UnitAssignment: UnitAssignmentForm,
+    }
+    form_class = form_classes.get(model)
+    if form_class is None:
+        form_class = modelform_factory(
+            model,
+            fields='__all__',
+            widgets=get_form_widgets(model),
+        )
     form = form_class(request.POST or None, instance=obj)
 
     if request.method == 'POST' and form.is_valid():
@@ -220,19 +245,38 @@ def model_delete(request, model_name, pk):
 @lecturer_required
 def lecturer_dashboard(request):
     lecturer = get_object_or_404(models.Lecturer, user=request.user)
-    units = lecturer.course_units.order_by('unit_name')
-    results = (
+    units = lecturer.course_units.select_related(
+        'course',
+        'credit_allocation',
+    ).order_by('unit_name')
+    results = list(
         models.Result.objects.filter(unit__in=units)
-        .select_related('student', 'unit', 'session')
+        .select_related(
+            'student',
+            'unit',
+            'unit__credit_allocation',
+            'session',
+        )
         .order_by('-session__academic_year', 'student__student_name')
     )
+    grades_by_marks = {}
+    result_rows = []
+    for result in results:
+        if result.marks not in grades_by_marks:
+            grades_by_marks[result.marks] = get_grade_for_marks(result.marks)
+        result_rows.append(
+            {
+                'result': result,
+                'grade': grades_by_marks[result.marks],
+            }
+        )
     return render(
         request,
         'academics/lecturer_dashboard.html',
         {
             'lecturer': lecturer,
             'units': units,
-            'results': results,
+            'result_rows': result_rows,
         },
     )
 
@@ -246,14 +290,18 @@ def result_entry(request):
     )
     if request.method == 'POST' and form.is_valid():
         result = form.save()
-        weighted_gpa = calculate_weighted_gpa(result.student)
+        grade = get_grade_for_marks(result.marks)
+        session_gpa = calculate_gpa(result.student, result.session)
+        cgpa = calculate_cgpa(result.student)
         return render(
             request,
             'academics/result_entry_success.html',
             {
                 'result': result,
-                'weighted_gpa': weighted_gpa,
-                'first_class': is_first_class(weighted_gpa),
+                'grade': grade,
+                'session_gpa': session_gpa,
+                'cgpa': cgpa,
+                'first_class': is_first_class(cgpa),
             },
         )
 
@@ -267,7 +315,12 @@ def result_entry(request):
 @coordinator_required
 def coordinator_dashboard(request):
     results = (
-        models.Result.objects.select_related('student', 'unit', 'session')
+        models.Result.objects.select_related(
+            'student',
+            'unit',
+            'unit__credit_allocation',
+            'session',
+        )
         .order_by(
             '-session__academic_year',
             'session__semester',
@@ -275,20 +328,28 @@ def coordinator_dashboard(request):
         )
     )
     result_rows = []
-    student_gpas = {}
+    student_cgpas = {}
+    student_session_gpas = {}
+    grades_by_marks = {}
     for result in results:
-        if result.student_id not in student_gpas:
-            student_gpa = calculate_weighted_gpa(result.student)
-            student_gpas[result.student_id] = (
-                student_gpa,
-                is_first_class(student_gpa),
+        if result.student_id not in student_cgpas:
+            student_cgpas[result.student_id] = calculate_cgpa(result.student)
+        session_key = (result.student_id, result.session_id)
+        if session_key not in student_session_gpas:
+            student_session_gpas[session_key] = calculate_gpa(
+                result.student,
+                result.session,
             )
-        weighted_gpa, first_class = student_gpas[result.student_id]
+        if result.marks not in grades_by_marks:
+            grades_by_marks[result.marks] = get_grade_for_marks(result.marks)
+        cgpa = student_cgpas[result.student_id]
         result_rows.append(
             {
                 'result': result,
-                'weighted_gpa': weighted_gpa,
-                'first_class': first_class,
+                'grade': grades_by_marks[result.marks],
+                'session_gpa': student_session_gpas[session_key],
+                'cgpa': cgpa,
+                'first_class': is_first_class(cgpa),
             }
         )
 
