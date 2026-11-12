@@ -28,8 +28,8 @@
             </dl>
             <div class="rounded-3 bg-light p-3 mb-4">
                 <h2 class="h6">Academic performance</h2>
-                {% if session_gpa is not None %}
-                    <p class="mb-1">Session GPA: <strong>{{ session_gpa }}</strong> / 5.00</p>
+                {% if semester_gpa is not None %}
+                    <p class="mb-1">Semester GPA: <strong>{{ semester_gpa }}</strong> / 5.00</p>
                     <p class="mb-1">Cumulative GPA (CGPA): <strong>{{ cgpa }}</strong> / 5.00</p>
                     {% if first_class %}
                         <span class="badge text-bg-success">First Class (CGPA &ge; 4.40)</span>

@@ -17,11 +17,12 @@ from .models import (
     Result,
     Student,
     StudySession,
+    Timetable,
     UnitAssignment,
 )
 from .services import (
     calculate_cgpa,
-    calculate_gpa,
+    calculate_semester_gpa,
     get_grade_for_marks,
     is_first_class,
 )
@@ -38,9 +39,24 @@ class AcademicCrudViewTests(TestCase):
         self.user.groups.add(registrar_group)
         self.client.force_login(self.user)
 
+    def login_as_coordinator(self):
+        coordinator = get_user_model().objects.create_user(
+            username='timetable-coordinator',
+            password='test-password-123',
+        )
+        coordinator_group, _ = Group.objects.get_or_create(
+            name=ROLE_COORDINATOR
+        )
+        coordinator.groups.add(coordinator_group)
+        self.client.force_login(coordinator)
+
     def test_all_model_lists_and_create_forms_are_accessible(self):
         for model_name in MODEL_REGISTRY:
             with self.subTest(model_name=model_name):
+                if model_name == 'timetables':
+                    self.login_as_coordinator()
+                else:
+                    self.client.force_login(self.user)
                 for url_name in ('model-list', 'model-create'):
                     response = self.client.get(
                         reverse(f'academics:{url_name}', args=[model_name])
@@ -56,6 +72,10 @@ class AcademicCrudViewTests(TestCase):
         )
         for model_name, field_name in test_cases:
             with self.subTest(model_name=model_name):
+                if model_name == 'timetables':
+                    self.login_as_coordinator()
+                else:
+                    self.client.force_login(self.user)
                 response = self.client.get(
                     reverse('academics:model-create', args=[model_name])
                 )
@@ -180,6 +200,11 @@ class AcademicCrudViewTests(TestCase):
             'credit_units',
             course_unit_form_response.context['form'].fields,
         )
+        course_unit_list = self.client.get(
+            reverse('academics:model-list', args=['course-units'])
+        )
+        self.assertContains(course_unit_list, 'Faculty')
+        self.assertContains(course_unit_list, 'Engineering')
 
         response = self.client.post(
             reverse('academics:model-create', args=['unit-assignments']),
@@ -199,12 +224,37 @@ class AcademicCrudViewTests(TestCase):
         )
         self.assertNotIn('lecturer', allocation_response.context['form'].fields)
         self.assertIn('credit_units', allocation_response.context['form'].fields)
+        self.assertEqual(
+            allocation_response.context['form'].fields['unit'].label,
+            'Course unit',
+        )
+        self.assertEqual(
+            allocation_response.context['form'].fields['credit_units'].label,
+            'Credit units',
+        )
+        allocation_list = self.client.get(
+            reverse('academics:model-list', args=['unit-assignments'])
+        )
+        self.assertContains(allocation_list, 'Computer Science')
+        self.assertContains(allocation_list, 'Algorithms')
+        self.assertContains(allocation_list, '7')
 
     def test_credit_allocation_requires_positive_credit_units(self):
+        faculty = Faculty.objects.create(
+            faculty_id=1,
+            faculty_name='Engineering',
+        )
+        course = Course.objects.create(
+            course_code='CSC101',
+            course_name='Computer Science',
+            duration=Course.Duration.THREE_YEARS,
+            faculty=faculty,
+        )
         unit = CourseUnit.objects.create(
             unit_name='Algorithms',
             academic_year='2026/2027',
             semester=CourseUnit.Semester.ONE,
+            course=course,
         )
 
         response = self.client.post(
@@ -245,7 +295,6 @@ class AcademicCrudViewTests(TestCase):
                 'contact': '0700000000',
                 'department': 'Computer Science',
                 'faculty': faculty.pk,
-                'user': '',
             },
         )
 
@@ -255,6 +304,57 @@ class AcademicCrudViewTests(TestCase):
             reverse('academics:model-detail', args=['lecturers', lecturer.pk]),
         )
         self.assertEqual(lecturer.faculty, faculty)
+        self.assertIsNone(lecturer.user)
+        lecturer_form = self.client.get(
+            reverse('academics:model-create', args=['lecturers'])
+        )
+        self.assertNotIn('user', lecturer_form.context['form'].fields)
+
+    def test_lecturer_assignment_list_shows_faculty_and_courses_taught(self):
+        faculty = Faculty.objects.create(
+            faculty_id=1,
+            faculty_name='Engineering',
+        )
+        course = Course.objects.create(
+            course_code='CSC101',
+            course_name='Computer Science',
+            duration=Course.Duration.THREE_YEARS,
+            faculty=faculty,
+        )
+        unit = CourseUnit.objects.create(
+            unit_name='Algorithms',
+            academic_year='2026/2027',
+            semester=CourseUnit.Semester.ONE,
+            course=course,
+        )
+        response = self.client.post(
+            reverse('academics:model-create', args=['lecturers']),
+            {
+                'lecturer_name': 'Grace Lecturer',
+                'gender': Lecturer.Gender.FEMALE,
+                'contact': '0700000000',
+                'department': 'Computer Science',
+                'faculty': faculty.pk,
+            },
+        )
+        lecturer = Lecturer.objects.get(lecturer_name='Grace Lecturer')
+        UnitAssignment.objects.create(lecturer=lecturer, unit=unit)
+
+        response = self.client.get(
+            reverse('academics:model-list', args=['lecturers'])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Faculty')
+        self.assertContains(response, 'Courses taught')
+        self.assertContains(response, 'Science')
+        self.assertContains(response, 'Computer Science')
+
+        assignments = self.client.get(
+            reverse('academics:model-list', args=['lecturer-assignments'])
+        )
+        self.assertContains(assignments, 'Course unit')
+        self.assertContains(assignments, 'Computer Science')
 
     def test_lecturer_cannot_be_assigned_a_unit_from_another_faculty(self):
         engineering = Faculty.objects.create(
@@ -519,6 +619,15 @@ class RoleWorkflowTests(TestCase):
         UnitAssignment.objects.create(lecturer=self.lecturer, unit=self.other_unit)
     def test_lecturer_can_only_enter_marks_for_assigned_units(self):
         self.client.force_login(self.user)
+        form_response = self.client.get(reverse('academics:result-entry'))
+        self.assertEqual(
+            form_response.context['form'].fields['unit'].label,
+            'Course unit',
+        )
+        self.assertContains(form_response, 'Course unit')
+        self.assertContains(form_response, 'Programming')
+        self.assertNotContains(form_response, 'Unit code')
+
         response = self.client.post(
             reverse('academics:result-entry'),
             {
@@ -535,7 +644,7 @@ class RoleWorkflowTests(TestCase):
         self.assertContains(response, 'First Class')
         self.assertContains(response, '4.4')
         self.assertContains(response, 'A (5.0 points)')
-        self.assertContains(response, 'Session GPA:')
+        self.assertContains(response, 'Semester GPA:')
         self.assertContains(response, 'Cumulative GPA (CGPA):')
 
         response = self.client.post(
@@ -616,14 +725,162 @@ class RoleWorkflowTests(TestCase):
         response = self.client.get(reverse('academics:coordinator-dashboard'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'First Class')
-        self.assertContains(response, 'CGPA')
+        self.assertContains(response, 'Semester GPA')
 
         response = self.client.get(
             reverse('academics:model-update', args=['results', result.pk])
         )
         self.assertEqual(response.status_code, 403)
 
-    def test_session_gpa_and_cgpa_use_credit_units_and_count_every_attempt(self):
+    def test_coordinator_can_manage_timetable_entries(self):
+        timetable = Timetable.objects.create(
+            day='2026-11-12',
+            time='09:00:00',
+            room='Room 1',
+            semester=CourseUnit.Semester.ONE,
+            unit=self.unit,
+            lecturer=self.lecturer,
+        )
+        coordinator = get_user_model().objects.create_user(
+            username='timetable-coordinator',
+            password='test-password-123',
+        )
+        coordinator_group, _ = Group.objects.get_or_create(
+            name=ROLE_COORDINATOR
+        )
+        coordinator.groups.add(coordinator_group)
+        self.client.force_login(coordinator)
+
+        list_url = reverse('academics:model-list', args=['timetables'])
+        response = self.client.get(list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Room 1')
+        self.assertContains(response, 'Programming')
+        self.assertContains(response, 'Timetable')
+        self.assertContains(
+            response,
+            reverse('academics:model-list', args=['timetables']),
+        )
+        self.assertContains(response, 'Add record')
+        self.assertContains(response, 'Edit')
+        self.assertContains(response, 'Delete')
+
+        response = self.client.get(
+            reverse('academics:model-detail', args=['timetables', timetable.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Room 1')
+        self.assertContains(response, 'Edit record')
+        self.assertContains(response, 'Delete')
+
+        self.assertEqual(
+            self.client.get(
+                reverse('academics:model-list', args=['students'])
+            ).status_code,
+            403,
+        )
+
+        create_url = reverse('academics:model-create', args=['timetables'])
+        self.assertEqual(self.client.get(create_url).status_code, 200)
+        response = self.client.post(
+            create_url,
+            {
+                'day': '2026-11-13',
+                'time': '10:00',
+                'room': 'Room 2',
+                'semester': CourseUnit.Semester.ONE,
+                'unit': self.other_unit.pk,
+                'lecturer': self.lecturer.pk,
+            },
+        )
+        created = Timetable.objects.get(room='Room 2')
+        self.assertRedirects(
+            response,
+            reverse('academics:model-detail', args=['timetables', created.pk]),
+        )
+
+        update_url = reverse(
+            'academics:model-update',
+            args=['timetables', created.pk],
+        )
+        self.assertEqual(self.client.get(update_url).status_code, 200)
+        response = self.client.post(
+            update_url,
+            {
+                'day': '2026-11-14',
+                'time': '11:00',
+                'room': 'Room 3',
+                'semester': CourseUnit.Semester.TWO,
+                'unit': self.other_unit.pk,
+                'lecturer': self.lecturer.pk,
+            },
+        )
+        self.assertRedirects(
+            response,
+            reverse('academics:model-detail', args=['timetables', created.pk]),
+        )
+        created.refresh_from_db()
+        self.assertEqual(created.room, 'Room 3')
+        self.assertEqual(created.semester, CourseUnit.Semester.TWO)
+
+        delete_url = reverse(
+            'academics:model-delete',
+            args=['timetables', created.pk],
+        )
+        self.assertEqual(self.client.get(delete_url).status_code, 200)
+        response = self.client.post(delete_url)
+        self.assertRedirects(
+            response,
+            reverse('academics:model-list', args=['timetables']),
+        )
+        self.assertFalse(Timetable.objects.filter(pk=created.pk).exists())
+
+    def test_registrar_can_view_but_cannot_manage_timetable(self):
+        timetable = Timetable.objects.create(
+            day='2026-11-12',
+            time='09:00:00',
+            room='Room 1',
+            semester=CourseUnit.Semester.ONE,
+            unit=self.unit,
+            lecturer=self.lecturer,
+        )
+        registrar = get_user_model().objects.create_user(
+            username='timetable-registrar',
+            password='test-password-123',
+        )
+        registrar_group, _ = Group.objects.get_or_create(name=ROLE_REGISTRAR)
+        registrar.groups.add(registrar_group)
+        self.client.force_login(registrar)
+
+        response = self.client.get(
+            reverse('academics:model-list', args=['timetables'])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Room 1')
+        self.assertContains(response, 'Timetable')
+        self.assertContains(response, 'Timetable')
+        self.assertNotContains(response, 'Add record')
+        self.assertNotContains(response, 'Edit')
+        self.assertNotContains(response, 'Delete')
+
+        response = self.client.get(
+            reverse('academics:model-detail', args=['timetables', timetable.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Room 1')
+        self.assertNotContains(response, 'Edit record')
+        self.assertNotContains(response, 'Delete')
+
+        urls = (
+            reverse('academics:model-create', args=['timetables']),
+            reverse('academics:model-update', args=['timetables', timetable.pk]),
+            reverse('academics:model-delete', args=['timetables', timetable.pk]),
+        )
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_semester_gpa_and_cgpa_use_credit_units_and_count_every_attempt(self):
         previous_session = StudySession.objects.create(
             academic_year='2024/2025',
             semester=StudySession.Semester.TWO,
@@ -648,7 +905,7 @@ class RoleWorkflowTests(TestCase):
             marks=44,
         )
 
-        gpa = calculate_gpa(self.student, self.session)
+        gpa = calculate_semester_gpa(self.student, self.session)
         cgpa = calculate_cgpa(self.student)
 
         self.assertEqual(gpa, Decimal('4.60'))
@@ -688,8 +945,8 @@ class RoleWorkflowTests(TestCase):
                 self.assertEqual(grade.grade_symbol, symbol)
                 self.assertEqual(grade.grade_points, Decimal(str(points)))
 
-    def test_session_gpa_is_unavailable_without_results(self):
-        self.assertIsNone(calculate_gpa(self.student, self.session))
+    def test_semester_gpa_is_unavailable_without_results(self):
+        self.assertIsNone(calculate_semester_gpa(self.student, self.session))
         self.assertIsNone(calculate_cgpa(self.student))
 
     def test_unassigned_course_units_are_not_used_for_results_or_gpa(self):
@@ -711,7 +968,7 @@ class RoleWorkflowTests(TestCase):
         form = ResultEntryForm(lecturer=self.lecturer)
 
         self.assertNotIn(unassigned_unit, form.fields['unit'].queryset)
-        self.assertIsNone(calculate_gpa(self.student, result.session))
+        self.assertIsNone(calculate_semester_gpa(self.student, result.session))
         self.assertIsNone(calculate_cgpa(self.student))
 
     def test_results_from_another_course_do_not_affect_gpa(self):
@@ -736,5 +993,5 @@ class RoleWorkflowTests(TestCase):
             marks=90,
         )
 
-        self.assertIsNone(calculate_gpa(other_student, self.session))
+        self.assertIsNone(calculate_semester_gpa(other_student, self.session))
         self.assertIsNone(calculate_cgpa(other_student))

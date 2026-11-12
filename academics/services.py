@@ -66,7 +66,7 @@ def _calculate_weighted_average(results):
     return round(weighted_points / Decimal(total_credits), 2)
 
 
-def calculate_gpa(student, session):
+def calculate_semester_gpa(student, session):
     results = Result.objects.filter(student=student, session=session)
     return _calculate_weighted_average(results)
 

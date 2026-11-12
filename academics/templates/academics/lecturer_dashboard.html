@@ -7,7 +7,7 @@
     <div>
         <p class="text-uppercase small fw-semibold text-primary mb-2">Lecturer workspace</p>
         <h1 class="page-heading display-6 mb-2">Welcome, {{ lecturer.lecturer_name }}</h1>
-        <p class="page-subtitle mb-0">Enter marks for your assigned course units.</p>
+        <p class="page-subtitle mb-0">{{ lecturer.faculty.faculty_name }} &middot; Enter marks for your assigned course units.</p>
     </div>
     <div class="page-tools">
         <a class="btn btn-primary" href="{% url 'academics:result-entry' %}"><i class="bi bi-pencil-square me-2" aria-hidden="true"></i>Enter student marks</a>
@@ -22,7 +22,7 @@
                 <div class="surface p-3 h-100">
                     <span class="module-icon mb-3"><i class="bi bi-journal-text" aria-hidden="true"></i></span>
                     <h3 class="h6 mb-1">{{ unit.unit_name }}</h3>
-                    <p class="page-subtitle small mb-0">{{ unit.academic_year }} &middot; Semester {{ unit.semester }} &middot; {% if unit.credit_allocation %}{{ unit.credit_allocation.credit_units }} credits{% else %}Credits not allocated{% endif %}</p>
+                    <p class="page-subtitle small mb-0">{{ unit.course.course_name }} &middot; {{ unit.academic_year }} &middot; Semester {{ unit.semester }} &middot; {% if unit.credit_allocation %}{{ unit.credit_allocation.credit_units }} credits{% else %}Credits not allocated{% endif %}</p>
                 </div>
             </div>
         {% empty %}

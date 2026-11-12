@@ -50,6 +50,7 @@
                 {% elif is_faculty_coordinator %}
                     <span class="sidebar-section-label">COORDINATOR WORKSPACE</span>
                     <a class="sidebar-link" href="{% url 'academics:coordinator-dashboard' %}"><i class="bi bi-clipboard-data-fill" aria-hidden="true"></i><span>Results review</span></a>
+                    <a class="sidebar-link" href="{% url 'academics:model-list' 'timetables' %}"><i class="bi bi-clock-history" aria-hidden="true"></i><span>Timetable</span></a>
                 {% endif %}
             </nav>
             <div class="sidebar-footer">

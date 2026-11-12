@@ -9,10 +9,12 @@
         <h1 class="page-heading h2 mt-2 mb-1">{{ object }}</h1>
         <p class="page-subtitle mb-0">{{ model_label }} details</p>
     </div>
-    <div class="page-tools d-flex gap-2">
-        <a class="btn btn-light border" href="{% url 'academics:model-update' model_name object.pk %}"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Edit record</a>
-        <a class="btn btn-outline-danger" href="{% url 'academics:model-delete' model_name object.pk %}"><i class="bi bi-trash3 me-2" aria-hidden="true"></i>Delete</a>
-    </div>
+    {% if not read_only %}
+        <div class="page-tools d-flex gap-2">
+            <a class="btn btn-light border" href="{% url 'academics:model-update' model_name object.pk %}"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Edit record</a>
+            <a class="btn btn-outline-danger" href="{% url 'academics:model-delete' model_name object.pk %}"><i class="bi bi-trash3 me-2" aria-hidden="true"></i>Delete</a>
+        </div>
+    {% endif %}
 </div>
 <div class="surface p-3 p-md-4">
     <dl class="row mb-0">

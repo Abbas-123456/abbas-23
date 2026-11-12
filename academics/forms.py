@@ -108,7 +108,7 @@ class CourseForm(forms.ModelForm):
 class LecturerForm(forms.ModelForm):
     class Meta:
         model = Lecturer
-        fields = '__all__'
+        exclude = ('user',)
 
 
 class CourseUnitForm(forms.ModelForm):
@@ -121,6 +121,8 @@ class CreditUnitAllocationForm(forms.ModelForm):
     credit_units = forms.IntegerField(
         min_value=1,
         widget=forms.NumberInput(attrs={'min': 1}),
+        label='Credit units',
+        help_text='Enter the credit value assigned to this course unit.',
     )
 
     class Meta:
@@ -131,7 +133,11 @@ class CreditUnitAllocationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['unit'].queryset = CourseUnit.objects.select_related(
             'course'
-        ).order_by('course__course_name', 'unit_name')
+        ).filter(course__isnull=False).order_by(
+            'course__course_name',
+            'unit_name',
+        )
+        self.fields['unit'].label = 'Course unit'
 
 
 class UnitAssignmentForm(forms.ModelForm):
@@ -144,6 +150,8 @@ class UnitAssignmentForm(forms.ModelForm):
         self.fields['unit'].queryset = CourseUnit.objects.select_related(
             'course'
         ).order_by('unit_name')
+        self.fields['unit'].label = 'Course unit'
+        self.fields['lecturer'].label = 'Lecturer'
 
     def clean(self):
         cleaned_data = super().clean()
@@ -174,10 +182,14 @@ class ResultEntryForm(forms.ModelForm):
     def __init__(self, *args, lecturer, **kwargs):
         super().__init__(*args, **kwargs)
         self.lecturer = lecturer
+        self.fields['unit'].label = 'Course unit'
         self.fields['unit'].queryset = lecturer.course_units.filter(
             course__isnull=False,
             credit_allocation__credit_units__gt=0,
         ).order_by('unit_name')
+        self.fields['unit'].help_text = (
+            'Choose a course unit assigned to you.'
+        )
         self.fields['session'].queryset = StudySession.objects.filter(
             status=StudySession.Status.ONGOING
         ).order_by('-academic_year', 'semester')

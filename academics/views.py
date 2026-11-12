@@ -30,7 +30,7 @@ from .forms import (
 )
 from .services import (
     calculate_cgpa,
-    calculate_gpa,
+    calculate_semester_gpa,
     get_grade_for_marks,
     is_first_class,
 )
@@ -59,17 +59,58 @@ def get_model(model_name):
 
 
 def get_display_fields(model):
+    if model is models.CreditUnitAllocation:
+        return [
+            ('Course', 'unit.course'),
+            ('Course unit', 'unit'),
+            ('Credit units', 'credit_units'),
+        ]
+    if model is models.UnitAssignment:
+        return [
+            ('Lecturer', 'lecturer'),
+            ('Faculty', 'lecturer.faculty'),
+            ('Course', 'unit.course'),
+            ('Course unit', 'unit'),
+        ]
+    if model is models.Lecturer:
+        return [
+            ('Lecturer name', 'lecturer_name'),
+            ('Faculty', 'faculty'),
+            ('Department', 'department'),
+            ('Courses taught', 'courses_taught'),
+            ('Contact', 'contact'),
+        ]
+    if model is models.CourseUnit:
+        return [
+            ('Course unit', 'unit_name'),
+            ('Course', 'course'),
+            ('Faculty', 'course.faculty'),
+            ('Academic year', 'academic_year'),
+            ('Semester', 'semester'),
+        ]
     return [
-        (field.verbose_name.title(), field.name)
+        (
+            'Course unit' if field.name == 'unit' else field.verbose_name.title(),
+            field.name,
+        )
         for field in model._meta.concrete_fields
     ]
 
 
 def get_display_values(obj, fields):
     return [
-        (label, str(getattr(obj, name)))
+        (label, _get_display_value(obj, name))
         for label, name in fields
     ]
+
+
+def _get_display_value(obj, field_path):
+    value = obj
+    for field_name in field_path.split('.'):
+        value = getattr(value, field_name, None)
+        if value is None:
+            return 'Not assigned'
+    return str(value)
 
 
 def get_form_widgets(model):
@@ -135,13 +176,45 @@ def index(request):
     raise PermissionDenied
 
 
-@registrar_required
+def can_view_model(user, model_name):
+    if model_name == 'timetables':
+        return has_role(user, ROLE_REGISTRAR) or has_role(
+            user,
+            ROLE_COORDINATOR,
+        )
+    return has_role(user, ROLE_REGISTRAR)
+
+
+def can_manage_model(user, model_name):
+    if model_name == 'timetables':
+        return has_role(user, ROLE_COORDINATOR)
+    return has_role(user, ROLE_REGISTRAR)
+
+
+@login_required
 def model_list(request, model_name):
+    if not can_view_model(request.user, model_name):
+        raise PermissionDenied
+
     model = get_model(model_name)
     fields = get_display_fields(model)
+    queryset = model.objects.all()
+    if model is models.Lecturer:
+        queryset = queryset.select_related('faculty').prefetch_related(
+            'unit_assignments__unit__course'
+        )
+    elif model is models.CourseUnit:
+        queryset = queryset.select_related('course__faculty')
+    elif model is models.CreditUnitAllocation:
+        queryset = queryset.select_related('unit__course')
+    elif model is models.UnitAssignment:
+        queryset = queryset.select_related(
+            'lecturer__faculty',
+            'unit__course',
+        )
     records = [
         (obj, get_display_values(obj, fields))
-        for obj in model.objects.all()
+        for obj in queryset
     ]
     return render(
         request,
@@ -151,14 +224,33 @@ def model_list(request, model_name):
             'model_label': model._meta.verbose_name_plural.title(),
             'fields': [label for label, _ in fields],
             'records': records,
+            'read_only': not can_manage_model(request.user, model_name),
         },
     )
 
 
-@registrar_required
+@login_required
 def model_detail(request, model_name, pk):
+    if not can_view_model(request.user, model_name):
+        raise PermissionDenied
+
     model = get_model(model_name)
     obj = get_object_or_404(model, pk=pk)
+    if model is models.Lecturer:
+        obj = (
+            model.objects.select_related('faculty')
+            .prefetch_related('unit_assignments__unit__course')
+            .get(pk=pk)
+        )
+    elif model is models.CourseUnit:
+        obj = model.objects.select_related('course__faculty').get(pk=pk)
+    elif model is models.CreditUnitAllocation:
+        obj = model.objects.select_related('unit__course').get(pk=pk)
+    elif model is models.UnitAssignment:
+        obj = model.objects.select_related(
+            'lecturer__faculty',
+            'unit__course',
+        ).get(pk=pk)
     return render(
         request,
         'academics/model_detail.html',
@@ -167,12 +259,16 @@ def model_detail(request, model_name, pk):
             'model_label': model._meta.verbose_name.title(),
             'object': obj,
             'fields': get_display_values(obj, get_display_fields(model)),
+            'read_only': not can_manage_model(request.user, model_name),
         },
     )
 
 
-@registrar_required
+@login_required
 def model_form(request, model_name, pk=None):
+    if not can_manage_model(request.user, model_name):
+        raise PermissionDenied
+
     model = get_model(model_name)
     obj = get_object_or_404(model, pk=pk) if pk is not None else None
     form_classes = {
@@ -213,8 +309,11 @@ def model_form(request, model_name, pk=None):
     )
 
 
-@registrar_required
+@login_required
 def model_delete(request, model_name, pk):
+    if not can_manage_model(request.user, model_name):
+        raise PermissionDenied
+
     model = get_model(model_name)
     obj = get_object_or_404(model, pk=pk)
     if request.method == 'POST':
@@ -291,7 +390,7 @@ def result_entry(request):
     if request.method == 'POST' and form.is_valid():
         result = form.save()
         grade = get_grade_for_marks(result.marks)
-        session_gpa = calculate_gpa(result.student, result.session)
+        semester_gpa = calculate_semester_gpa(result.student, result.session)
         cgpa = calculate_cgpa(result.student)
         return render(
             request,
@@ -299,7 +398,7 @@ def result_entry(request):
             {
                 'result': result,
                 'grade': grade,
-                'session_gpa': session_gpa,
+                'semester_gpa': semester_gpa,
                 'cgpa': cgpa,
                 'first_class': is_first_class(cgpa),
             },
@@ -329,14 +428,14 @@ def coordinator_dashboard(request):
     )
     result_rows = []
     student_cgpas = {}
-    student_session_gpas = {}
+    student_semester_gpas = {}
     grades_by_marks = {}
     for result in results:
         if result.student_id not in student_cgpas:
             student_cgpas[result.student_id] = calculate_cgpa(result.student)
-        session_key = (result.student_id, result.session_id)
-        if session_key not in student_session_gpas:
-            student_session_gpas[session_key] = calculate_gpa(
+        semester_key = (result.student_id, result.session_id)
+        if semester_key not in student_semester_gpas:
+            student_semester_gpas[semester_key] = calculate_semester_gpa(
                 result.student,
                 result.session,
             )
@@ -347,7 +446,7 @@ def coordinator_dashboard(request):
             {
                 'result': result,
                 'grade': grades_by_marks[result.marks],
-                'session_gpa': student_session_gpas[session_key],
+                'semester_gpa': student_semester_gpas[semester_key],
                 'cgpa': cgpa,
                 'first_class': is_first_class(cgpa),
             }

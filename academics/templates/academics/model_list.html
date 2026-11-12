@@ -9,9 +9,11 @@
         <h1 class="page-heading h2 mt-2 mb-1">{{ model_label }}</h1>
         <p class="page-subtitle mb-0">Browse and manage {{ model_label|lower }}.</p>
     </div>
-    <div class="page-tools">
-        <a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Add record</a>
-    </div>
+    {% if not read_only %}
+        <div class="page-tools">
+            <a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Add record</a>
+        </div>
+    {% endif %}
 </div>
 {% if records %}
     <div class="surface overflow-hidden">
@@ -20,7 +22,7 @@
                 <thead class="table-light">
                     <tr>
                         {% for label in fields %}<th scope="col" class="px-3 py-3">{{ label }}</th>{% endfor %}
-                        <th scope="col" class="px-3 py-3 text-end">Actions</th>
+                        {% if not read_only %}<th scope="col" class="px-3 py-3 text-end">Actions</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -35,10 +37,12 @@
                                     {% endif %}
                                 </td>
                             {% endfor %}
-                            <td class="px-3 text-end text-nowrap">
-                                <a class="btn btn-sm btn-light border" href="{% url 'academics:model-update' model_name obj.pk %}"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit</a>
-                                <a class="btn btn-sm btn-outline-danger" href="{% url 'academics:model-delete' model_name obj.pk %}"><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete</a>
-                            </td>
+                            {% if not read_only %}
+                                <td class="px-3 text-end text-nowrap">
+                                    <a class="btn btn-sm btn-light border" href="{% url 'academics:model-update' model_name obj.pk %}"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit</a>
+                                    <a class="btn btn-sm btn-outline-danger" href="{% url 'academics:model-delete' model_name obj.pk %}"><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete</a>
+                                </td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -50,7 +54,7 @@
         <span class="module-icon mb-3"><i class="bi bi-inbox" aria-hidden="true"></i></span>
         <h2 class="h5">No records yet</h2>
         <p class="page-subtitle">Add the first record to get started.</p>
-        <a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Add record</a>
+        {% if not read_only %}<a class="btn btn-primary" href="{% url 'academics:model-create' model_name %}"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Add record</a>{% endif %}
     </div>
 {% endif %}
 {% endblock %}

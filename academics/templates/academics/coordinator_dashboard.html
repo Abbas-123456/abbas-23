@@ -6,7 +6,7 @@
 <div class="mb-4">
     <p class="text-uppercase small fw-semibold text-primary mb-2">Faculty Coordinator</p>
     <h1 class="page-heading display-6 mb-2"><i class="bi bi-clipboard-data-fill me-2 text-primary" aria-hidden="true"></i>Results review</h1>
-    <p class="page-subtitle mb-0">Read-only view of recorded marks, grades, session GPAs, and cumulative GPAs.</p>
+    <p class="page-subtitle mb-0">Read-only view of recorded marks, grades, semester GPAs, and cumulative GPAs.</p>
 </div>
 <div class="surface overflow-hidden">
     <div class="table-responsive">
@@ -18,7 +18,7 @@
                     <th class="px-3 py-3">Study session</th>
                     <th class="px-3 py-3">Marks</th>
                     <th class="px-3 py-3">Grade</th>
-                    <th class="px-3 py-3">Session GPA</th>
+                    <th class="px-3 py-3">Semester GPA</th>
                     <th class="px-3 py-3">CGPA</th>
                     <th class="px-3 py-3">Classification</th>
                 </tr>
@@ -31,7 +31,7 @@
                         <td class="px-3">{{ row.result.session.academic_year }} / Semester {{ row.result.session.semester }} / {{ row.result.session.study_period }}</td>
                         <td class="px-3 fw-semibold">{{ row.result.marks }}%</td>
                         <td class="px-3">{% if row.grade %}{{ row.grade.grade_symbol }} ({{ row.grade.grade_points }}){% else %}Not available{% endif %}</td>
-                        <td class="px-3">{% if row.session_gpa is not None %}{{ row.session_gpa }} / 5.00{% else %}Not available{% endif %}</td>
+                        <td class="px-3">{% if row.semester_gpa is not None %}{{ row.semester_gpa }} / 5.00{% else %}Not available{% endif %}</td>
                         <td class="px-3">{% if row.cgpa is not None %}{{ row.cgpa }} / 5.00{% else %}Not available{% endif %}</td>
                         <td class="px-3">
                             {% if row.cgpa is None %}

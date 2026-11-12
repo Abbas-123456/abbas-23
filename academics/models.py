@@ -113,6 +113,15 @@ class Lecturer(models.Model):
     def __str__(self):
         return self.lecturer_name
 
+    @property
+    def courses_taught(self):
+        course_names = {
+            assignment.unit.course.course_name
+            for assignment in self.unit_assignments.all()
+            if assignment.unit.course_id
+        }
+        return ', '.join(sorted(course_names)) or 'No course units assigned'
+
 
 class CourseUnit(models.Model):
     class Semester(models.TextChoices):
